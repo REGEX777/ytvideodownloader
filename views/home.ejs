@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <div class="container mx-auto mt-10">
+        <div class="text-center mb-6">
+            <h1 class="text-4xl font-bold text-blue-600"><%= title %></h1>
+            <p class="text-lg text-gray-600 mt-2">Download YouTube videos quickly and easily!</p>
+        </div>
+        <div class="w-full max-w-md mx-auto bg-white shadow-lg rounded-lg p-6">
+            <form action="/download" method="post">
+                <div class="mb-4">
+                    <label for="url" class="block text-sm font-medium text-gray-700">YouTube Video URL</label>
+                    <input type="text" id="url" name="url" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Enter video link" required>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300">Download</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
