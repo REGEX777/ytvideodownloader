@@ -2,7 +2,7 @@ import express from 'express';
 const router = express.Router();
 
 router.get('/', (req, res) => {
-    res.render('index', { title: 'YouTube Video Downloader' });
+    res.render('home', { title: 'YouTube Video Downloader' });
 });
 
 export default router;

@@ -5,7 +5,6 @@ import path from 'path';
 import indexRoute from './routes/index.js';
 import downloadRoute from './routes/download.js';
 import historyRoute from './routes/history.js';
-import videoRoutes from './routes/video.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,7 +17,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/', indexRoute);
 app.use('/download', downloadRoute);
 app.use('/history', historyRoute);
-app.use('/', videoRoutes);
 
 app.use((req, res, next) => {
     res.status(404).render('error', { message: 'Page not found' });
