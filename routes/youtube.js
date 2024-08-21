@@ -1,7 +1,7 @@
 import express from 'express';
 import ytdl from 'ytdl-core';
-import path from 'path';
 import { fileURLToPath } from 'url';
+import path from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,14 +18,21 @@ router.get('/download', async (req, res) => {
     try {
         const videoInfo = await ytdl.getInfo(videoURL);
         const videoTitle = videoInfo.videoDetails.title.replace(/[\/\\?%*:|"<>]/g, '-');
-        
-        res.setHeader('Content-Disposition', `attachment; filename="${videoTitle}.mp4"`);
-        res.setHeader('Content-Type', 'video/mp4');
 
-        ytdl(videoURL, { quality }).pipe(res);
+        res.setHeader('Content-Disposition', `attachment; filename="${videoTitle}.mp4"`);
+
+        ytdl(videoURL, { quality })
+            .on('error', (error) => {
+                console.error('Stream error:', error);
+                res.status(500).send('Failed to stream video.');
+            })
+            .pipe(res)
+            .on('finish', () => {
+                console.log('Video stream finished');
+            });
     } catch (err) {
         console.error('Error:', err);
-        res.status(500).send('Failed to stream video.');
+        res.status(500).send('Failed to process the video.');
     }
 });
 
