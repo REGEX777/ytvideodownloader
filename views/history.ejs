@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <div class="container mx-auto mt-10">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6"><%= title %></h1>
+        <div class="bg-white shadow-lg rounded-lg p-6">
+            <% if (history.length > 0) { %>
+                <ul>
+                    <% history.forEach(item => { %>
+                        <li class="mb-4">
+                            <h3 class="text-lg font-bold text-gray-800"><%= item.title %></h3>
+                            <p class="text-gray-600">Downloaded on: <%= new Date(item.date).toLocaleString() %></p>
+                            <a href="<%= item.url %>" target="_blank" class="text-blue-600 hover:underline">Watch on YouTube</a>
+                        </li>
+                    <% }); %>
+                </ul>
+            <% } else { %>
+                <p class="text-gray-600">No download history available.</p>
+            <% } %>
+        </div>
+    </div>
+</body>
+</html>
