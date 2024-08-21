@@ -1,27 +1,20 @@
-import 'dotenv/config';
 import express from 'express';
 import path from 'path';
-
-import indexRoute from './routes/index.js';
-import downloadRoute from './routes/download.js';
-import historyRoute from './routes/history.js';
+import youtubeRouter from './routes/youtube.js';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 app.set('view engine', 'ejs');
 
-app.use(express.static(path.join(path.resolve(), 'public')));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public'));
 
-app.use('/', indexRoute);
-app.use('/download', downloadRoute);
-app.use('/history', historyRoute);
-
-app.use((req, res, next) => {
-    res.status(404).render('error', { message: 'Page not found' });
+app.get('/', (req, res) => {
+    res.render('home', { title: 'YouTube Downloader' });
 });
 
+app.use('/api/youtube', youtubeRouter);
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
