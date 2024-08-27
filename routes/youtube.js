@@ -10,14 +10,33 @@ const router = express.Router();
 
 const DOWNLOAD_DIR = path.join(__dirname, '../downloads');
 
-// make sure folder exists otherwise make it 
 if (!fs.existsSync(DOWNLOAD_DIR)) {
     fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 }
 
-// clean up the filename so it doesn’t have bad characters
 const sanitizeFileName = (name) => {
     return name.replace(/[\/\\?%*:|"<>]/g, '-');
+};
+
+const getDecipherFunction = (playerScriptUrl) => {
+    return function (url) {
+        return url;
+    };
+};
+
+// decipher format urls
+const decipherFormatURLs = async (formats, decipher) => {
+    formats.forEach((format) => {
+        if (format.signatureCipher) {
+            const params = new URLSearchParams(format.signatureCipher);
+            const url = params.get('url');
+            const sp = params.get('sp');
+            const sig = decipher(params.get('s'));
+
+            format.url = `${url}&${sp}=${sig}`;
+            delete format.signatureCipher;
+        }
+    });
 };
 
 router.get('/download/formats', async (req, res) => {
@@ -29,6 +48,9 @@ router.get('/download/formats', async (req, res) => {
 
     try {
         const info = await ytdl.getInfo(url);
+        const decipher = getDecipherFunction(info.player_url);
+        await decipherFormatURLs(info.formats, decipher);
+
         const formats = info.formats.map(format => ({
             itag: format.itag,
             quality: format.qualityLabel,
@@ -48,7 +70,6 @@ router.get('/download/video', async (req, res) => {
 
     console.log('Received download request:', { url, itag });
 
-    // Validate the YouTube URL
     if (!ytdl.validateURL(url)) {
         console.log('Invalid YouTube URL:', url);
         return res.status(400).send('Invalid YouTube URL');
@@ -57,15 +78,15 @@ router.get('/download/video', async (req, res) => {
     try {
         console.log('Fetching video info for URL:', url);
         const info = await ytdl.getInfo(url);
+        const decipher = getDecipherFunction(info.player_url);
+        await decipherFormatURLs(info.formats, decipher);
 
-        console.log('Video info fetched successfully:', {
-            title: info.videoDetails.title,
-            formatsAvailable: info.formats.length,
-        });
-
-        // format will depend on the selected itag
-        console.log('Choosing format with itag:', itag);
         const format = ytdl.chooseFormat(info.formats, { quality: itag });
+
+        if (!format) {
+            console.log('No format found with itag:', itag);
+            return res.status(400).send('Invalid format itag');
+        }
 
         console.log('Selected format:', {
             container: format.container,
@@ -97,7 +118,5 @@ router.get('/download/video', async (req, res) => {
         res.status(500).send('Error while processing video download');
     }
 });
-
-
 
 export default router;
