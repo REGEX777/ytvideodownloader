@@ -20,69 +20,30 @@ const sanitizeFileName = (name) => {
     return name.replace(/[\/\\?%*:|"<>]/g, '-');
 };
 
-router.get('/download', async (req, res) => {
-    const { url: videoURL, quality = 'highest', format = 'mp4', save = false, type = 'video' } = req.query;
+router.get('/download/formats', async (req, res) => {
+    const { url: videoURL } = req.query;
 
-    // check if url is valid or else stop
+    // check if url is valid
     if (!ytdl.validateURL(videoURL)) {
-        return res.status(400).send('invalid youtube url');
+        return res.status(400).send('Invalid YouTube URL');
     }
 
     try {
-        // get video info like title n stuff
         const videoInfo = await ytdl.getInfo(videoURL);
-        const videoTitle = sanitizeFileName(videoInfo.videoDetails.title);
-        const outputFileName = `${videoTitle}.${format}`;
-        const outputFilePath = path.join(DOWNLOAD_DIR, outputFileName);
-
-        console.log(`downloading video: ${videoTitle} from ${videoInfo.videoDetails.video_url}`);
-        console.log(`quality: ${quality}, format: ${format}, type: ${type}`);
-
-        let filterFunction = null;
-        if (type === 'audio') {
-            filterFunction = format => format.hasAudio && !format.hasVideo;
-        } else if (type === 'video') {
-            filterFunction = format => format.hasVideo;
-        }
-
-        // get the video from youtube
-        const videoStream = ytdl(videoURL, {
-            quality,
-            filter: filterFunction
-        });
-
-        if (save) {
-            // save video to disk
-            const fileStream = fs.createWriteStream(outputFilePath);
-            videoStream.pipe(fileStream);
-
-            fileStream.on('finish', () => {
-                console.log(`video saved to ${outputFilePath}`);
-                res.send(`video saved at ${outputFilePath}`);
-            });
-
-            fileStream.on('error', (err) => {
-                console.error(`error saving file`, err);
-                res.status(500).send('error saving video');
-            });
-        } else {
-            // stream video to user directly
-            res.setHeader('Content-Disposition', `attachment; filename="${outputFileName}"`);
-            videoStream.pipe(res);
-
-            videoStream.on('finish', () => {
-                console.log(`video streamed to user`);
-            });
-
-            videoStream.on('error', (err) => {
-                console.error(`stream error`, err);
-                res.status(500).send('error streaming video');
-            });
-        }
+        const formats = ytdl.filterFormats(videoInfo.formats, 'audioandvideo');
+        const formattedData = formats.map(format => ({
+            quality: format.qualityLabel,
+            mimeType: format.mimeType,
+            size: format.contentLength || 'Unknown size',
+            url: format.url,
+        }));
+        res.header('Content-Disposition', `attachment; filename="${videoInfo.videoDetails.title}.${format.container}"`);
+        ytdl(videoURL, { quality: itag }).pipe(res);
     } catch (err) {
-        console.error(`error processing video`, err);
-        res.status(500).send('error processing video');
+        console.error('Error fetching video formats', err);
+        res.status(500).send('Error processing video');
     }
 });
+
 
 export default router;

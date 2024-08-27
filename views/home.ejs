@@ -30,48 +30,55 @@
 <body class="bg-gray-100 text-gray-800">
     <div class="container mx-auto mt-10">
         <div class="text-center mb-8">
-            <h1 class="text-5xl font-extrabold text-blue-600"><%= title %></h1>
-            <p class="text-lg text-gray-600 mt-4">Download YouTube videos or audio in your preferred format with ease!</p>
+            <h1 class="text-5xl font-extrabold text-blue-600">YouTube Downloader</h1>
+            <p class="text-lg text-gray-600 mt-4">Download videos in your preferred format!</p>
         </div>
         <div class="w-full max-w-lg mx-auto bg-white shadow-lg rounded-lg p-8">
-            <form action="/api/youtube/download" method="get" id="download-form">
+            <form id="download-form">
                 <div class="mb-6">
                     <label for="url" class="block text-lg font-medium text-gray-700">YouTube Video URL</label>
                     <input type="text" id="url" name="url" class="mt-2 block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-md" placeholder="Paste the video link here" required>
                 </div>
-                <div class="mb-6">
-                    <label for="quality" class="block text-lg font-medium text-gray-700">Select Quality</label>
-                    <select id="quality" name="quality" class="mt-2 block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-md">
-                        <option value="highest">Highest Quality (Audio & Video)</option>
-                        <option value="lowest">Lowest Quality</option>
-                        <option value="highestaudio">Highest Quality (Audio Only)</option>
-                        <option value="lowestvideo">Lowest Quality (Video Only)</option>
-                    </select>
+                <button type="button" id="fetch-formats" class="w-full bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 transition duration-300 text-lg font-medium">Fetch Video Formats</button>
+                <div id="quality-select" class="mt-6 hidden">
+                    <label for="format" class="block text-lg font-medium text-gray-700">Select Format</label>
+                    <select id="format" name="format" class="mt-2 block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-md"></select>
+                    <button type="submit" class="mt-6 w-full bg-green-600 text-white py-3 px-6 rounded-md hover:bg-green-700 transition duration-300 text-lg font-medium">Download</button>
                 </div>
-                <button type="submit" class="w-full bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 transition duration-300 text-lg font-medium flex items-center justify-center">
-                    <span>Download</span>
-                    <div id="spinner" class="spinner ml-3 hidden"></div>
-                </button>
-                <div id="progress-bar" class="mt-4 rounded-md"></div>
             </form>
-        </div>
-        <div class="text-center mt-8">
-            <p class="text-gray-500 text-sm">Note: The download process might take a few moments depending on the video size and your network speed.</p>
+            <div id="progress-bar" class="mt-4 rounded-md hidden"></div>
         </div>
     </div>
     <script>
-        const form = document.getElementById('download-form');
+        const fetchFormatsBtn = document.getElementById('fetch-formats');
+        const qualitySelect = document.getElementById('quality-select');
+        const formatDropdown = document.getElementById('format');
         const progressBar = document.getElementById('progress-bar');
-        const spinner = document.getElementById('spinner');
 
-        form.addEventListener('submit', () => {
+        fetchFormatsBtn.addEventListener('click', async () => {
+            const videoURL = document.getElementById('url').value;
             progressBar.style.display = 'block';
-            progressBar.style.width = '0';
-            setTimeout(() => {
+            progressBar.style.width = '50%';
+            const response = await fetch(`/api/youtube/download/formats?url=${videoURL}`);
+            const formats = await response.json();
+
+            if (formats.length > 0) {
+                formatDropdown.innerHTML = formats.map(format => `
+                    <option value="${format.url}">
+                        ${format.quality} - ${format.mimeType} - ${format.size}
+                    </option>
+                `).join('');
+                qualitySelect.classList.remove('hidden');
                 progressBar.style.width = '100%';
-            }, 100);
-            spinner.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('download-form').addEventListener('submit', (event) => {
+            event.preventDefault();
+            const selectedURL = formatDropdown.value;
+            window.location.href = selectedURL;
         });
     </script>
 </body>
+
 </html>
