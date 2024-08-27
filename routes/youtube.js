@@ -21,29 +21,46 @@ const sanitizeFileName = (name) => {
 };
 
 router.get('/download/formats', async (req, res) => {
-    const { url: videoURL } = req.query;
+    const { url } = req.query;
 
-    // check if url is valid
-    if (!ytdl.validateURL(videoURL)) {
+    if (!ytdl.validateURL(url)) {
         return res.status(400).send('Invalid YouTube URL');
     }
 
     try {
-        const videoInfo = await ytdl.getInfo(videoURL);
-        const formats = ytdl.filterFormats(videoInfo.formats, 'audioandvideo');
-        const formattedData = formats.map(format => ({
+        const info = await ytdl.getInfo(url);
+        const formats = info.formats.map(format => ({
+            itag: format.itag,
             quality: format.qualityLabel,
             mimeType: format.mimeType,
-            size: format.contentLength || 'Unknown size',
-            url: format.url,
+            size: format.contentLength ? (format.contentLength / (1024 * 1024)).toFixed(2) + ' MB' : 'N/A'
         }));
-        res.header('Content-Disposition', `attachment; filename="${videoInfo.videoDetails.title}.${format.container}"`);
-        ytdl(videoURL, { quality: itag }).pipe(res);
+
+        res.json(formats);
     } catch (err) {
-        console.error('Error fetching video formats', err);
-        res.status(500).send('Error processing video');
+        console.error('Error fetching video formats:', err);
+        res.status(500).send('Error fetching video formats');
     }
 });
+
+router.get('/download/video', async (req, res) => {
+    const { url, itag } = req.query;
+
+    if (!ytdl.validateURL(url)) {
+        return res.status(400).send('Invalid YouTube URL');
+    }
+
+    try {
+        const info = await ytdl.getInfo(url);
+        const format = ytdl.chooseFormat(info.formats, { quality: itag });
+
+        res.header('Content-Disposition', `attachment; filename="${sanitizeFileName(info.videoDetails.title)}.${format.container}"`);
+        ytdl(url, { format }).pipe(res);
+    } catch (err) {
+        console.error('error while downloading video:', err);
+        res.status(500).send('error while processing video download');
+    }
+}); 
 
 
 export default router;
