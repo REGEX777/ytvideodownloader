@@ -46,21 +46,58 @@ router.get('/download/formats', async (req, res) => {
 router.get('/download/video', async (req, res) => {
     const { url, itag } = req.query;
 
+    console.log('Received download request:', { url, itag });
+
+    // Validate the YouTube URL
     if (!ytdl.validateURL(url)) {
+        console.log('Invalid YouTube URL:', url);
         return res.status(400).send('Invalid YouTube URL');
     }
 
     try {
+        console.log('Fetching video info for URL:', url);
         const info = await ytdl.getInfo(url);
+
+        console.log('Video info fetched successfully:', {
+            title: info.videoDetails.title,
+            formatsAvailable: info.formats.length,
+        });
+
+        // format will depend on the selected itag
+        console.log('Choosing format with itag:', itag);
         const format = ytdl.chooseFormat(info.formats, { quality: itag });
 
-        res.header('Content-Disposition', `attachment; filename="${sanitizeFileName(info.videoDetails.title)}.${format.container}"`);
-        ytdl(url, { format }).pipe(res);
+        console.log('Selected format:', {
+            container: format.container,
+            qualityLabel: format.qualityLabel,
+            mimeType: format.mimeType,
+        });
+
+        const sanitizedFileName = sanitizeFileName(info.videoDetails.title);
+        console.log('Sanitized file name:', sanitizedFileName);
+
+        res.header('Content-Disposition', `attachment; filename="${sanitizedFileName}.${format.container}"`);
+        console.log('Response headers set, starting video download...');
+
+        ytdl(url, { format })
+            .on('progress', (chunkLength, downloaded, total) => {
+                console.log(`Downloading: ${((downloaded / total) * 100).toFixed(2)}% complete`);
+            })
+            .on('end', () => {
+                console.log('Video download complete.');
+            })
+            .on('error', (err) => {
+                console.error('Error during video download:', err);
+                res.status(500).send('Error while downloading video');
+            })
+            .pipe(res);
+
     } catch (err) {
-        console.error('error while downloading video:', err);
-        res.status(500).send('error while processing video download');
+        console.error('Error while processing video download:', err);
+        res.status(500).send('Error while processing video download');
     }
-}); 
+});
+
 
 
 export default router;

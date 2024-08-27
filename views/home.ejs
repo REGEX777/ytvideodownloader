@@ -46,7 +46,7 @@
                     <button type="submit" class="mt-6 w-full bg-green-600 text-white py-3 px-6 rounded-md hover:bg-green-700 transition duration-300 text-lg font-medium">Download</button>
                 </div>
             </form>
-            <div id="progress-bar" class="mt-4 rounded-md hidden"></div>
+            <div id="progress-bar" class="mt-4 rounded-md"></div>
         </div>
     </div>
     <script>
@@ -59,26 +59,54 @@
             const videoURL = document.getElementById('url').value;
             progressBar.style.display = 'block';
             progressBar.style.width = '50%';
-            const response = await fetch(`/api/youtube/download/formats?url=${videoURL}`);
+            const response = await fetch(`/api/youtube/download/formats?url=${encodeURIComponent(videoURL)}`);
             const formats = await response.json();
 
             if (formats.length > 0) {
                 formatDropdown.innerHTML = formats.map(format => `
-                    <option value="${format.url}">
+                    <option value="${format.itag}">
                         ${format.quality} - ${format.mimeType} - ${format.size}
                     </option>
                 `).join('');
                 qualitySelect.classList.remove('hidden');
                 progressBar.style.width = '100%';
+                setTimeout(() => { progressBar.style.display = 'none'; }, 1000); // make the progress bar go away after it reacher 100%
             }
         });
 
         document.getElementById('download-form').addEventListener('submit', (event) => {
             event.preventDefault();
-            const selectedURL = formatDropdown.value;
-            window.location.href = selectedURL;
+            const videoURL = document.getElementById('url').value;
+            const selectedItag = formatDropdown.value;
+            progressBar.style.width = '0%';
+            progressBar.style.display = 'block';
+
+            fetch(`/api/youtube/download/video?url=${encodeURIComponent(videoURL)}&itag=${selectedItag}`, {
+                method: 'GET'
+            }).then(response => {
+                if (response.ok) {
+                    progressBar.style.width = '100%';
+                    response.blob().then(blob => {  // turn the reposne into a blob (kinda like a file)
+                        const url = window.URL.createObjectURL(blob);  
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        a.download = `${sanitizeFileName(videoURL)}.mp4`; // pls set the downloadfile name which is related to video url just for the match T~T
+                        document.body.appendChild(a);
+                        a.click();
+                        // after all of this is done, this code will hopefully remove the url and save the ram
+                        window.URL.revokeObjectURL(url);
+                    });
+                }
+            }).catch(err => {
+                console.error('Download failed:', err);
+                progressBar.style.display = 'none';
+            });
         });
+
+        const sanitizeFileName = (name) => {
+            return name.replace(/[\/\\?%*:|"<>]/g, '-');
+        }
     </script>
 </body>
-
 </html>
